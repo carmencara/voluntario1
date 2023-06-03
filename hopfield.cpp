@@ -3,7 +3,7 @@
 //         ALGORITMO DE METROPOLIS PARA EL MODELO DE HOPFIELD         |
 //                                                                    |
 //  Estudio de un solo patrón:                                        |
-//    - Capacidad de la red de recordar el patrón "pollitos.txt"      |
+//    - Capacidad de la red de recordar distintos patrones            |
 //       · Condición inicial: patrón deformado                        |
 //       · Condición inicial: aleatoria                               |
 //    - Evolución del solapamiento para distintas temperaturas:       |
@@ -19,15 +19,22 @@
 #include "gsl_rng.h"  //Libreria para generación de números aleatorios
 #include <sys/time.h>
 
-#define N 150         // Tamaño de la matriz de spines
+#define N 128          // Tamaño de la matriz de spines
+#define P 1           // Número de patrones
+
+static double w[N*N][N*N];    // Pesos sinápticos, w[N*i+j][k*N+l] es la interacción entre (i,j) y (k,l)
 
 using namespace std;
 
 // FUNCIONES QUE SE VAN A UTILIZAR
+void LeerFichero(int q[][N*N]);
+void Calcular_w(int q[][N*N], double w[N*N][N*N], double a[]);
+void Calcular_t(double t[][N], int q[][N*N], double a[], double w[N*N][N*N]);
+double Calcular_deltaE(int s[][N], int q[][N*N], double t[][N], double a[], double w[N*N][N*N], int x, int y);
+double Calcula_solap(int s[][N], int q[][N*N], double a[], int patron);
 long int SemillaTiempo();
 int Random_int(int max, gsl_rng *tau);
 double Random_double(gsl_rng *tau);
-//double DeltaEnergia(int s[N][N], double w[N][N][N][N], int x, int y);
 
 /*---------------------------------------------------------------------
 |                           FUNCIÓN PRINCIPAL                         |
@@ -36,12 +43,11 @@ int main()
 {   
     // ------------------- DECLARACIÓN DE VARIABLES -------------------
     int N2;                // Paso de Montecarlo
-    int i,j,k,l,n;         // Contadores
+    int i,j,k,l,n,m;       // Contadores
     int s[N][N];           // Matriz de spines
-    int q[N][N];           // Matriz del patrón inicial
+    int q[3][N*N];         // Matriz del patrón inicial
     int x,y;               // Coordenadas aleatorias en la red
     double deformacion;    // Porcentaje de neuronas deformadas del patrón inicial
-    double w[N][N][N][N];  // Matriz de pesos sinápticos
     double t[N][N];        // Matriz de umbral de disparo (theta)
     double T;              // Temperatura
     double aux;            // Real auxiliar para asignar cond. iniciales aleatorias
@@ -49,39 +55,34 @@ int main()
     double expo;           // expo=exp(-deltaE/T)
     double p;              // p = min(1, expo)
     double xi;             // Número aleatorio entre 0 y 1
-    double a;              // Variable a que aparece en la expresión de los pesos sinápticos
+    double a[P];           // Variable a que aparece en la expresión de los pesos sinápticos
+    double solap[P];       // Solapamiento
     double iter;           // Número de iteraciones
-    double PMC;            // Contador para los pasos de Montecarlo (PMC)
     bool aleatorio;        // Elegir si los elementos de la red son aleatorios/constantes
     ofstream datos;        // Fichero para guardar los spines
+    ofstream solapamiento; // Fichero para guardar el solapamiento
     ifstream patron;       // Fichero con el patrón inicial a recordar "pollitos.txt"
     gsl_rng *tau;          // Para números aleatorios con gsl
     int semilla;           // Para números aleatorios con gsl
 
 
     // ------------------ CONFIGURACIONES INICIALES -------------------
-    // Guardar el patrón inicial en la matriz q[N][N]
-    patron.open("pollitos.txt");
-    for(i=0;i<N;i++)
-    {
-        for(j=0;j<N;j++)
-        {
-            patron >> q[i][j];
-        }
-    }
+    // Guardar el(los) patrón(es) inicial(es) en la matriz q[P][N][N]
+    LeerFichero(q);
     // Elegir si los elementos de la red son aleatorios (true) o los del patrón (false)
-    aleatorio=false;
+    aleatorio=true;
     // Paso de Montecarlo
     N2=N*N;
     // Temperatura inicial
-    T=1E-2;
+    T=1E-4;
     // Establecer la semilla para generar números aleatorios
     semilla=SemillaTiempo();
     tau = gsl_rng_alloc(gsl_rng_taus);
     gsl_rng_set(tau,semilla);
 
-    // Abrir fichero
+    // Abrir ficheros para guardar resultados
     datos.open("datos_1patron.txt");
+    solapamiento.open("solapamiento_1patron.txt");
 
     // -------------------- CONDICIONES INICIALES ---------------------
     if(aleatorio==true) // Spines iniciales aleatorios
@@ -104,7 +105,7 @@ int main()
         {
             for(j=0;j<N;j++)
             {
-                s[i][j]=q[i][j]; // La red es igual que el patrón inicial
+                s[i][j]=q[0][N*i+j]; // La red es igual que el patrón inicial
             }
         }
         for(i=0;i<trunc(N2*deformacion);i++)
@@ -129,60 +130,32 @@ int main()
     datos << endl;
 
     // --------------------- CALCULAR VARIABLE "a" ---------------------
-    a = 0;
-    for(i=0;i<N;i++)
-    {
-        for(j=0;j<N;j++)
-        {
-            a = a + q[i][j];
-        }
-    }
-    a = a / N2;
+    for(m=0;m<4;m++){
+        a[m]=0;
 
-    // ------------------ CALCULAR PESOS SINÁPTICOS --------------------
-    for(i=0;i<N;i++)
-    {
-        for(j=0;j<N;j++)
-        {
-            for(k=0;k<N;k++)
-            {
-                for(l=0;l<N;l++)
-                {
-                    w[i][j][k][l] = 1 / N2*(q[i][j]-a)*(q[k][l]-a);
-                }
+        for(i=0;i<N;i++){
+            for(j=0;j<N;j++){
+                a[m]=a[m]+1.0*q[m][i*N+j];
             }
         }
+        a[m]=a[m]/N2;
     }
+    // ------------------- CALCULAR PESOS SINÁPTICOS -------------------
+    Calcular_w(q, w, a);
 
     // ------------------ CALCULAR UMBRAL DE DISPARO -------------------
-    for(i=0;i<N;i++)
-    {
-        for(j=0;j<N;j++)
-        {
-            t[i][j] = 0;
-            for(k=0;k<N;k++)
-            {
-                for(l=0;l<N;l++)
-                {
-                    t[i][j] = t[i][j] + w[i][j][k][l];
-                }
-            }
-            t[i][j] = t[i][j] / 2;
-        }
-    }
+    Calcular_t (t, q, a, w);
 
     // -------------------- ALGORITMO DE MONTECARLO --------------------
     iter = 100*N2;
-    PMC = 0; // Inicializo los PMC
-    for(n=1;n<=iter;n++)
+    for(n=0;n<iter;n++)
     {
         // ------------------- ELIJO (n,m) ALEATORIO -------------------
         x=rand()%N;
         y=rand()%N;
 
         // --------------------- CÁLCULO DE deltaE ---------------------
-        //deltaE=DeltaEnergia(s, w, x, y);
-        deltaE=0;
+        deltaE = Calcular_deltaE(s, q, t, a, w, x, y);
 
         // ------------ EVALUAR p = min(1, exp(−deltaE/T)) -------------
         expo=exp(-1.0*deltaE/T);
@@ -206,7 +179,15 @@ int main()
                 datos << s[i][N-1] << endl;
             }
             datos << endl;
-            PMC++;
+            
+            // Guardo el solapamiento para cada paso de Montecarlo
+            solapamiento << n/N2 << "\t";
+            for(i=0;i<P;i++)
+            {
+                solap[i] = Calcula_solap(s, q, a, i);
+                solapamiento << solap[i] << "\t";
+            }
+            solapamiento << endl;
         }
     }
 
@@ -214,6 +195,155 @@ int main()
     patron.close();
     datos.close();
     return 0;
+}
+
+/*---------------------------------------------------------------------
+|               FUNCIONES PARA TRATAMIENTO DE FICHEROS                |
+---------------------------------------------------------------------*/
+void LeerFichero(int q[][N*N])
+{
+    int i,j;            // Contadores
+    ifstream patron1;   // Fichero donde está el patrón 1
+    ifstream patron2;   // Fichero donde está el patrón 2
+    ifstream patron3;   // Fichero donde está el patrón 3
+
+    // Abrir los ficheros
+    if(P==1)
+    {
+        patron1.open("pollitos.txt");
+    }
+    else if (P==3)
+    {
+        patron1.open("imagen1.txt");
+        patron2.open("imagen2.txt");
+        patron3.open("imagen3.txt");
+    }
+    else cout << "Introduzca 1 o 3 patrones" << endl;
+
+    // Guardar el contenido de los ficheros en la matriz de los patrones
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            if (P==1)
+            {
+                patron1 >> q[0][i*N+j];
+            }
+            if (P==3)
+            {
+                patron1 >> q[0][i*N+j];
+                patron2 >> q[1][i*N+j];
+                patron3 >> q[2][i*N+j];
+            }
+        }
+    }
+
+    // Cerrar los ficheros
+    if(P==1)
+    {
+        patron1.close();
+    }
+    else if (P==3)
+    {
+        patron1.close();
+        patron2.close();
+        patron3.close();
+    }
+}
+
+/*---------------------------------------------------------------------
+|           FUNCIONES PARA CALCULAR VARIABLES DEL ALGORITMO           |
+---------------------------------------------------------------------*/
+// Función que calcula el peso sináptico omega
+void Calcular_w(int q[][N*N], double w[N*N][N*N], double a[])
+{
+    int i,j,k,l,n;    // Contadores
+    
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            for(k=0;k<N;k++)
+            {
+                for(l=0;l<N;l++)
+                {
+                    w[N*i+j][N*k+l]=0;
+                    if((i==k)&&(j==l)) w[N*i+j][N*k+l]=0;
+                    else
+                    {
+                        for(n=0; n<P; n++)
+                        {
+                            w[N*i+j][N*k+l]=w[N*i+j][N*k+l]+(1.0*q[n][i*N+j]-a[n])*(1.0*q[n][k*N+l]-a[n])/(N*N);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return;    
+}
+
+// Función que calcula el umbral de disparo Theta
+void Calcular_t (double t[][N], int q[][N*N], double a[], double w[N*N][N*N])
+{
+    int i,j,k,l;    // Contadores
+    
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            t[i][j] = 0;
+            for(k=0;k<N;k++)
+            {
+                for(l=0;l<N;l++)
+                {
+
+                    t[i][j] = t[i][j] + 0.5*w[i*N+j][k*N+l];
+                }
+            }
+        }
+    }
+    return;
+}
+
+// Función que devuelve deltaE a partir de una posición (x,y) aleatoria
+double Calcular_deltaE(int s[][N], int q[][N*N], double t[][N], double a[], double w[N*N][N*N], int x, int y)
+{
+    // x, y son las posiciones aleatorias en la red
+    int i,j;
+    double deltaE;
+
+    deltaE = 0;
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            deltaE = deltaE + (w[x*N+y][i*N+j]*s[i][j]);
+        }
+    }
+    deltaE = (-0.5*deltaE+t[x][y])*(1-2*s[x][y]);
+
+    return deltaE;
+}
+
+// Función que calcula el SOLAPAMIENTO
+double Calcula_solap(int s[][N], int q[][N*N], double a[], int patron)
+{
+    int i, j;       // Contadores
+    double solap;   // Solapamiento
+    
+    solap = 0.0;
+    for(i=0;i<N;i++)
+    {
+        for(j=0;j<N;j++)
+        {
+            solap = solap + (q[patron][i*N+j]-a[patron])*(s[i][j]-a[patron]);
+        }
+    }
+    solap = 1.0*solap/(a[patron]*(1-a[patron])*N*N);
+
+    return solap;
 }
 
 /*---------------------------------------------------------------------
@@ -245,29 +375,4 @@ double Random_double(gsl_rng *tau)
 
     return numero_aleatorio;
 
-}
-
-/*---------------------------------------------------------------------
-|              FUNCIONES PARA EL ALGORITMO DE MONTECARLO              |
----------------------------------------------------------------------*/
-
-// Función que devuelve deltaE a partir de una posición (x,y) aleatoria
-// en la red y aplicando las CONDICIONES DE CONTORNO PERIÓDICAS:
-// s[0][i]=s[N][i], s[N+1][i]=s[1][i], s[i][0]=s[i][N], s[i][N+1]=s[i][1]
-
-double DeltaEnergia(int s[N][N], double w[N][N][N][N], int x, int y)
-{
-    // x, y son las posiciones aleatorias en la red
-    int k,l;
-    double deltaE;
-
-    deltaE = 0;
-    for(k=0;k<N;k++)
-    {
-        for(l=0;l<N;l++)
-        {
-            deltaE = deltaE + w[x][y][k][l]*s[x][y]*s[k][l];
-        }
-    }
-    return deltaE*2;
 }

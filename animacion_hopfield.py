@@ -45,8 +45,8 @@ import io
 
 # Parámetros
 # ========================================
-file_in = "condini.txt" # Nombre del fichero de datos
-file_out = "condini" # Nombre del fichero de salida (sin extensión)
+file_in = "datos_1patron.txt" # Nombre del fichero de datos
+file_out = "pollitos" # Nombre del fichero de salida (sin extensión)
 interval = 100 # Tiempo entre fotogramas en milisegundos
 save_to_file = True # False: muestra la animación por pantalla,
                      # True: la guarda en un fichero
@@ -84,7 +84,7 @@ fig, ax = plt.subplots()
 ax.axis("off")  # No muestra los ejes
 
 # Representa el primer fotograma
-im = ax.imshow(frames_data[0], cmap="binary", vmin=-1, vmax=+1)
+im = ax.imshow(frames_data[0], cmap="binary", vmin=0, vmax=+1)
  
 # Función que actualiza la configuración del sistema en la animación
 def update(j_frame, frames_data, im):
