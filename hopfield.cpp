@@ -19,7 +19,7 @@
 #include "gsl_rng.h"  //Libreria para generación de números aleatorios
 #include <sys/time.h>
 
-#define N 128          // Tamaño de la matriz de spines
+#define N 50          // Tamaño de la matriz de spines
 #define P 1           // Número de patrones
 
 static double w[N*N][N*N];    // Pesos sinápticos, w[N*i+j][k*N+l] es la interacción entre (i,j) y (k,l)
@@ -210,7 +210,7 @@ void LeerFichero(int q[][N*N])
     // Abrir los ficheros
     if(P==1)
     {
-        patron1.open("pollitos.txt");
+        patron1.open("pollito.txt");
     }
     else if (P==3)
     {

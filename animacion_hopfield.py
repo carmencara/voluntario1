@@ -45,7 +45,7 @@ import io
 
 # Parámetros
 # ========================================
-file_in = "datos_1patron.txt" # Nombre del fichero de datos
+file_in = "pollitos.txt" # Nombre del fichero de datos
 file_out = "pollitos" # Nombre del fichero de salida (sin extensión)
 interval = 100 # Tiempo entre fotogramas en milisegundos
 save_to_file = True # False: muestra la animación por pantalla,
