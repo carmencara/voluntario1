@@ -9,11 +9,13 @@ introducción al método Monte Carlo): modelo de Hopfield de red neuronal. Los o
 Se han realizado dos programas en C++:
 - hopfield.cpp (para los apartados 1-3)
 - memoria_patrones.cpp (para el apartado 4)
+
 En ambos se ha necesitado la librería GSL para la generación de números aleatorios (gsl_rng.h).
 
 Los ficheros con los datos que se extraen de las simulaciones se encuentran en las carpetas:
 - "Resultados para 1 patrón": resultados para los apartados 1 y 2.
 - "Resultados para 4 patrones": resultados para el apartado 3.
 - "Memoria en función del número de patrones": resultados para el apartado 4.
+
 Además, el script "animacion_hopfield.py" ha servido para realizar todas las animaciones e imágenes de la red neuronal y la carpeta
 "N50_pollito" contiene pruebas realizadas para una red más pequeña, de N=50 (en el informe se ha utilizado la red de N=128).
