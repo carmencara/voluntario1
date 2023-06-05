@@ -168,7 +168,7 @@ int main()
             // Escribo en el fichero 'patrones_recordados.txt'
             // Columnas -> patrones creados (1,2,...50)
             // Filas -> cada una de las 100 simulaciones
-            recordados << patron_recordado << '\t';
+            recordados << patron_recordado << ' ';
         }
         // Salto de línea para cada simulación
         recordados << endl;
