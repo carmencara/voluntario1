@@ -7,7 +7,7 @@
 //       · Condición inicial: patrón deformado                        |
 //       · Condición inicial: aleatoria                               |
 //    - Evolución del solapamiento para distintas temperaturas:       |
-//      1E-1, 5E-1, 1E-2, 5E-2, 1E-3, 5E-3, 1E-4                      |
+//      1E-1, 5E-1, 1E-2, 5E-2, 1E-3, 5E-3, 1E-4, 5E-4, 1E-5          |
 //                                                                    |
 //---------------------------------------------------------------------
 
@@ -19,8 +19,8 @@
 #include "gsl_rng.h"  //Libreria para generación de números aleatorios
 #include <sys/time.h>
 
-#define N 50          // Tamaño de la matriz de spines
-#define P 1           // Número de patrones
+#define N 60          // Tamaño de la matriz de spines
+#define P 4           // Número de patrones
 
 static double w[N*N][N*N];    // Pesos sinápticos, w[N*i+j][k*N+l] es la interacción entre (i,j) y (k,l)
 
@@ -45,7 +45,7 @@ int main()
     int N2;                // Paso de Montecarlo
     int i,j,k,l,n,m;       // Contadores
     int s[N][N];           // Matriz de spines
-    int q[3][N*N];         // Matriz del patrón inicial
+    int q[P][N*N];         // Matriz del patrón inicial
     int x,y;               // Coordenadas aleatorias en la red
     double deformacion;    // Porcentaje de neuronas deformadas del patrón inicial
     double t[N][N];        // Matriz de umbral de disparo (theta)
@@ -81,8 +81,8 @@ int main()
     gsl_rng_set(tau,semilla);
 
     // Abrir ficheros para guardar resultados
-    datos.open("datos_1patron.txt");
-    solapamiento.open("solapamiento_1patron.txt");
+    datos.open("datos_cultivos.txt");
+    solapamiento.open("solapamiento_deformado_T_.txt");
 
     // -------------------- CONDICIONES INICIALES ---------------------
     if(aleatorio==true) // Spines iniciales aleatorios
@@ -93,7 +93,7 @@ int main()
             {
                 // Inicializo aleatoriamente algunos spines a +1 y otros a -1
                 aux=Random_int(100,tau);
-                if(aux<50) s[i][j]=-1;
+                if(aux<50) s[i][j]=0;
                 else s[i][j]=1;
             }
         }
@@ -105,7 +105,7 @@ int main()
         {
             for(j=0;j<N;j++)
             {
-                s[i][j]=q[0][N*i+j]; // La red es igual que el patrón inicial
+                s[i][j]=q[0][N*i+j]; // La red es igual que el primer patrón
             }
         }
         for(i=0;i<trunc(N2*deformacion);i++)
@@ -192,7 +192,7 @@ int main()
     }
 
     // Cerrar el fichero y finalizar
-    patron.close();
+    solapamiento.close();
     datos.close();
     return 0;
 }
@@ -200,25 +200,27 @@ int main()
 /*---------------------------------------------------------------------
 |               FUNCIONES PARA TRATAMIENTO DE FICHEROS                |
 ---------------------------------------------------------------------*/
-void LeerFichero(int q[][N*N])
+void LeerFichero(int q[P][N*N])
 {
     int i,j;            // Contadores
     ifstream patron1;   // Fichero donde está el patrón 1
     ifstream patron2;   // Fichero donde está el patrón 2
     ifstream patron3;   // Fichero donde está el patrón 3
+    ifstream patron4;   // Fichero donde está el patrón 4
 
     // Abrir los ficheros
     if(P==1)
     {
         patron1.open("pollito.txt");
     }
-    else if (P==3)
+    else if (P==4)
     {
-        patron1.open("imagen1.txt");
-        patron2.open("imagen2.txt");
-        patron3.open("imagen3.txt");
+        patron1.open("cultivo1.txt");
+        patron2.open("cultivo2.txt");
+        patron3.open("cultivo3.txt");
+        patron4.open("cultivo4.txt");
     }
-    else cout << "Introduzca 1 o 3 patrones" << endl;
+    else cout << "Introduzca 1 o 4 patrones" << endl;
 
     // Guardar el contenido de los ficheros en la matriz de los patrones
     for(i=0;i<N;i++)
@@ -229,11 +231,12 @@ void LeerFichero(int q[][N*N])
             {
                 patron1 >> q[0][i*N+j];
             }
-            if (P==3)
+            if (P==4)
             {
                 patron1 >> q[0][i*N+j];
                 patron2 >> q[1][i*N+j];
                 patron3 >> q[2][i*N+j];
+                patron4 >> q[3][i*N+j];
             }
         }
     }
@@ -243,11 +246,12 @@ void LeerFichero(int q[][N*N])
     {
         patron1.close();
     }
-    else if (P==3)
+    else if (P==4)
     {
         patron1.close();
         patron2.close();
         patron3.close();
+        patron4.close();
     }
 }
 
